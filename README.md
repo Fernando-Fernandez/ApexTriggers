@@ -34,12 +34,15 @@ For example, there is no formula field that calculates the internal rate of retu
      }
      
      class ScenarioHelperClass {
-          public static void calculateXIRRP( TriggerOperation operationType, List<Scenario__c> newList, Map<ID, Scenario__c> oldMap ) {
+          public static void calculateXIRR( TriggerOperation operationType
+                              , List<Scenario__c> newList, Map<ID, Scenario__c> oldMap ) {
                // TODO:  implement recursion prevention here
                
                XIRRHelper myXIRR = new XIRRHelper();
                
                for( Scenario__c aScenario : newList ) {
+                    // TODO:  implement validation of periods and cashflows here
+               
                     myXIRR.reset();
                     myXIRR.addCashflow( aScenario.First_Period_Start_Date__c, aScenario.First_Period_Cashflow__c );
                     myXIRR.addCashflow( aScenario.Second_Period_Start_Date__c, aScenario.Second_Period_Cashflow__c );
