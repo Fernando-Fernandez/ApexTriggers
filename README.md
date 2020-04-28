@@ -61,8 +61,8 @@ For example, there is no formula field that calculates the internal rate of retu
 
 The trigger consists of a simple loop over the new/updated records. In the loop, it computes a value from some fields and stores the result in another field.
 
-### Trigger that adds validation error messages using data from fields in the same record
-This trigger is similar to the one above, but applied to validation. 
+### 2 - Trigger that adds validation error messages using data from fields in the same record
+This trigger is similar to trigger #1 above, but it applies to validation. 
 Some validation rules can't be expressed using validation formula functions or the resulting expression exceeds the validation size limit, hence the requirement for this trigger. 
 
 
