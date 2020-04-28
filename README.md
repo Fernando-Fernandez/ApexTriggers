@@ -12,19 +12,19 @@ All helper classes have a static method and a static set of ids to control recur
 ## Types of triggers
 There are 6 most basic types of triggers (there may be others but these are the ones most common in my experience):
 
-1 Trigger sets fields with values derived from other fields in the same record
+1. Trigger sets fields with values derived from other fields in the same record
 
-1 Trigger adds validation error messages using data from fields in the same record
+1. Trigger adds validation error messages using data from fields in the same record
 
-1 Trigger sets fields with values from other records
+1. Trigger sets fields with values from other records
 
-1 Trigger sets fields with values on other records
+1. Trigger sets fields with values on other records
 
-1 Trigger performs call outs to external web services or HTTP requests to receive data
+1. Trigger performs call outs to external web services or HTTP requests to receive data
 
-1 Trigger sends an email
+1. Trigger sends an email
 
-### Trigger that sets fields with values derived from other fields in the same record
+### 1 - Trigger that sets fields with values derived from other fields in the same record
 This trigger does what a formula field would ideally do:  compute an expression using other field values. 
 Some expressions are not possible using formula functions or the resulting expression exceeds the formula size limit, hence the requirement for this trigger. 
 For example, there is no formula field that calculates the internal rate of return ([IRR or XIRR](https://en.wikipedia.org/wiki/Internal_rate_of_return)), which can only be calculated using Newton's iterative method.
