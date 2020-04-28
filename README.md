@@ -24,7 +24,7 @@ There are 6 most basic types of triggers (there may be others but these are the 
 
 * Trigger sends an email
 
-### Trigger sets fields with values derived from other fields in the same record
+### Trigger that sets fields with values derived from other fields in the same record
 This trigger does what a formula field would ideally do:  compute an expression using other field values. 
 Some expressions are not possible using formula functions or the resulting expression exceeds the formula size limit, hence the requirement for this trigger. 
 For example, there is no formula field that calculates the internal rate of return ([IRR or XIRR](https://en.wikipedia.org/wiki/Internal_rate_of_return)), which can only be calculated using Newton's iterative method.
@@ -58,6 +58,12 @@ For example, there is no formula field that calculates the internal rate of retu
                }
           }
      }
+
+The trigger consists of a simple loop over the new/updated records. In the loop, it computes a value from some fields and stores the result in another field.
+
+### Trigger that adds validation error messages using data from fields in the same record
+This trigger is similar to the one above, but applied to validation. 
+Some validation rules can't be expressed using validation formula functions or the resulting expression exceeds the validation size limit, hence the requirement for this trigger. 
 
 
 
