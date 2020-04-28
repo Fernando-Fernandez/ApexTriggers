@@ -10,7 +10,7 @@ All triggers call static methods on the helper class and follow the format below
 All helper classes have a static method and a static set of ids to control recursion.
 
 ## Types of triggers
-There are 6 most basic types of triggers (there may be others but these are the ones most common):
+There are 6 most basic types of triggers (there may be others but these are the ones most common in my experience):
 
 * Trigger sets fields with values derived from other fields in the same record
 
