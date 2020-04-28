@@ -12,17 +12,17 @@ All helper classes have a static method and a static set of ids to control recur
 ## Types of triggers
 There are 6 most basic types of triggers (there may be others but these are the ones most common in my experience):
 
-* Trigger sets fields with values derived from other fields in the same record
+1 Trigger sets fields with values derived from other fields in the same record
 
-* Trigger adds validation error messages using data from fields in the same record
+1 Trigger adds validation error messages using data from fields in the same record
 
-* Trigger sets fields with values from other records
+1 Trigger sets fields with values from other records
 
-* Trigger sets fields with values on other records
+1 Trigger sets fields with values on other records
 
-* Trigger performs call outs to external web services or HTTP requests to receive data
+1 Trigger performs call outs to external web services or HTTP requests to receive data
 
-* Trigger sends an email
+1 Trigger sends an email
 
 ### Trigger that sets fields with values derived from other fields in the same record
 This trigger does what a formula field would ideally do:  compute an expression using other field values. 
