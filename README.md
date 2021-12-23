@@ -88,7 +88,10 @@ Some validation rules can't be expressed using validation formula functions or t
                
                for( Investment__c anInvestment : newList ) {
                     Decimal cumulativePercentage = percentageTotalsPerAccountIdMap.get( anInvestment.AccountId );
-                    cumulativePercentage = cumulativePercentage + anInvestment.Share_Percentage__c;
+                    if( cumulativePercentage == null ) {
+                         cumulativePercentage = 0;
+                    }
+                    cumulativePercentage = cumulativePercentage + anInvestment.Allocation_Percentage__c;
                     percentageTotalsPerAccountIdMap.put( anInvestment.AccountId, cumulativePercentage );
 
                     if( cumulativePercentage > 100.0 ) {
