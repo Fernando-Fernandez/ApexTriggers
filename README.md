@@ -3,9 +3,11 @@ Different types of Apex triggers (Salesforce) and their helper classes
 
 In all examples below the triggers will call static methods on the helper class and follow the format below:
 
+```java
      trigger MyObjTrigger on MyObj__c ( before insert, before update, /* ... */ ) {
           MyObjHelperClass.myObjMethod( trigger.operationType, trigger.new, trigger.oldMap );
      }
+```
 
 All helper classes below will have a static method and a static set of ids to control recursion. The examples are intended to be as simple as possible and only to illustrate the concept below:
 
@@ -40,6 +42,7 @@ This trigger does what a formula field would ideally do:  compute an expression 
 Some expressions are not possible using formula functions or the resulting expression exceeds the formula size limit, hence the requirement for this trigger. 
 For example, there is no formula field that calculates the extended internal rate of return ([IRR or XIRR](https://en.wikipedia.org/wiki/Internal_rate_of_return)), which can only be calculated using Newton's iterative method.
 
+```java
      trigger InvestmentTrigger on Investment__c ( before insert, before update ) {
           InvestmentHelperClass.calculateXIRR( trigger.operationType, trigger.new, trigger.oldMap );
      }
@@ -69,6 +72,7 @@ For example, there is no formula field that calculates the extended internal rat
                }
           }
      }
+```
 
 The above trigger consists of a simple loop over the new/updated records. In the loop, it computes a value from some fields and stores the result in another field.
 
@@ -76,6 +80,7 @@ The above trigger consists of a simple loop over the new/updated records. In the
 This trigger is similar to trigger #1 above, but it applies to validation. It does what a validation rule would ideally do:  check values from one or more fields against a criteria.
 Some validation rules can't be expressed using validation formula functions or the resulting expression exceeds the validation size limit or require values from more than one record, hence the need for this trigger. 
 
+```java
      trigger InvestmentTrigger on Investment__c ( before insert, before update ) {
           InvestmentHelperClass.validatePercentages( trigger.operationType, trigger.new, trigger.oldMap );
      }
@@ -100,15 +105,17 @@ Some validation rules can't be expressed using validation formula functions or t
                }
           }
      }
+```
 
 Same as before:  the trigger consists of a simple loop over the new/updated records. This time, it determines the cumulative percentage of all investments under a same account.
 
-### 3 - Trigger sets fields with values from other records
+### 3 - Trigger that sets fields with values from other records
 This trigger does what a cross object formula field would ideally do:  use values from other related records.
 Sometimes the requirement goes beyond what a simple lookup/master-detail relationship could accommodate, hence the need for this trigger. 
 
 The example below is adapted and simplified from a Field Service Lightning org. The client wanted a preferred resource automatically assigned to each work order. The resource needed to match the work order territory and be credentialed on the same service as the work order. 
 
+```java
      trigger WorkOrderTrigger on WorkOrder ( before insert, before update ) {
           WorkOrderHelperClass.findPreferredResource( trigger.operationType, trigger.new, trigger.oldMap );
      }
@@ -155,6 +162,12 @@ The example below is adapted and simplified from a Field Service Lightning org. 
                }
           }
      }
+```
 
-Notice that the pattern on the last 3 triggers was to start with a loop over the incoming records and use some data from them to take the next steps.
+Notice that the pattern on the last 3 triggers was to start with a loop over the incoming records and use some data from them to take the next steps. In this case, the data was collected from the incoming records to perform a query on another object.
 
+
+4. Trigger that sets fields with values on other records
+This trigger simply propagates data from the incoming records to other objects in the org. This may be accomplished via record-triggered flows too but it tends to be more straightforward and efficient to implement it in a trigger.
+
+The example below 
