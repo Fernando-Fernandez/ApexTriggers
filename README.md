@@ -37,6 +37,7 @@ They are categorized according to where data comes from and goes to and their fu
 | incoming records and web service | incoming records | trigger to perform callouts to external web services, fetch data and store it |
 | incoming records | outgoing email | functional equivalent to workflow alert |
 
+------------
 ### 1 - Trigger that sets fields with values derived from other fields in the same record
 This trigger does what a formula field would ideally do:  compute an expression using other field values. 
 Some expressions are not possible using formula functions or the resulting expression exceeds the formula size limit, hence the requirement for this trigger. 
@@ -76,6 +77,7 @@ For example, there is no formula field that calculates the extended internal rat
 
 The above trigger consists of a simple loop over the new/updated records. In the loop, it computes a value from some fields and stores the result in another field.
 
+------------
 ### 2 - Trigger that adds validation error messages using data from fields in the same record
 This trigger is similar to trigger #1 above, but it applies to validation. It does what a validation rule would ideally do:  check values from one or more fields against a criteria.
 Some validation rules can't be expressed using validation formula functions or the resulting expression exceeds the validation size limit or require values from more than one record, hence the need for this trigger. 
@@ -109,6 +111,7 @@ Some validation rules can't be expressed using validation formula functions or t
 
 Same as before:  the trigger consists of a simple loop over the new/updated records. This time, it determines the cumulative percentage of all investments under a same account.
 
+------------
 ### 3 - Trigger that sets fields with values from other records
 This trigger does what a cross object formula field would ideally do:  use values from other related records.
 Sometimes the requirement goes beyond what a simple lookup/master-detail relationship could accommodate, hence the need for this trigger. 
@@ -166,8 +169,8 @@ The example below is adapted and simplified from a Field Service Lightning org. 
 
 Notice that the pattern on the last 3 triggers was to start with a loop over the incoming records and use some data from them to take the next steps. In this case, the data was collected from the incoming records to perform a query on another object.
 
+------------
+### 4 - Trigger that sets fields with values on other records
+This trigger simply propagates data from the incoming records to other objects in the org. This may be accomplished via record-triggered flows too but it tends to be more straightforward and performant to implement it in a trigger.
 
-4. Trigger that sets fields with values on other records
-This trigger simply propagates data from the incoming records to other objects in the org. This may be accomplished via record-triggered flows too but it tends to be more straightforward and efficient to implement it in a trigger.
-
-The example below 
+The example below is adapted from a Sales org client. When an opportunity was closed, the client wanted to create 12 months worth of child records. 
