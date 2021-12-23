@@ -103,3 +103,58 @@ Some validation rules can't be expressed using validation formula functions or t
 
 Same as before:  the trigger consists of a simple loop over the new/updated records. This time, it determines the cumulative percentage of all investments under a same account.
 
+### 3 - Trigger sets fields with values from other records
+This trigger does what a cross object formula field would ideally do:  use values from other related records.
+Sometimes the requirement goes beyond what a simple lookup/master-detail relationship could accommodate, hence the need for this trigger. 
+
+The example below is adapted and simplified from a Field Service Lightning org. The client wanted a preferred resource automatically assigned to each work order. The resource needed to match the work order territory and be credentialed on the same service as the work order. 
+
+     trigger WorkOrderTrigger on WorkOrder ( before insert, before update ) {
+          WorkOrderHelperClass.findPreferredResource( trigger.operationType, trigger.new, trigger.oldMap );
+     }
+     
+     class WorkOrderHelperClass {
+          public static void findPreferredResource( TriggerOperation operationType
+                              , List<WorkOrder> newList, Map<ID, WorkOrder> oldMap ) {
+               
+               // collect territories and services to query ServiceTerritoryMember
+               Set<String> workOrderTerritorySet = new Set<String>();
+               Set<String> workOrderServiceSet = new Set<String>();
+               for( WorkOrder aWorkOrder : newList ) {
+                    if( aWorkOrder.ServiceTerritoryId != null ) {
+                         workOrderTerritorySet.add( aWorkOrder.ServiceTerritoryId );
+                    }
+                    if( aWorkOrder.Service__c != null ) {
+                         workOrderServiceSet.add( aWorkOrder.Service__c );
+                    }
+               }
+               
+               if( workOrderTerritorySet.isEmpty() && workOrderServiceSet.isEmpty() ) {
+                    return;
+               }
+               
+               // query ServiceTerritoryMember to build map indexed by territory and service
+               List<ServiceTerritoryMember> resourceList = [
+                    SELECT Id, ServiceResourceId, ServiceTerritoryId, ServiceResource.Service__c 
+                    FROM ServiceTerritoryMember 
+                    WHERE ServiceTerritoryId IN :workOrderTerritorySet 
+                         AND ServiceResource.Service__c IN :workOrderServiceSet 
+               ];
+               
+               Map<String, Id> resourceIdPerTerritoryServiceMap = new Map<String, Id>();
+               for( ServiceTerritoryMember aResource : resourceList ) {
+                    String indexKey = aResource.ServiceTerritoryId + '|' + aResource.ServiceResource.Service__c;
+                    resourcesPerTerritoryServiceMap.put( indexKey, aResource );
+               }
+               
+               // assign preferred resource matching by territory and service
+               for( WorkOrder aWorkOrder : newList ) {
+                    String indexKey = aWorkOrder.ServiceTerritoryId + '|' + aWorkOrder.Service__c;
+                    Id aResourceId = resourceIdPerTerritoryServiceMap.put( indexKey );
+                    aWorkOrder.Preferred_Resource__c = aResourceId;
+               }
+          }
+     }
+
+Notice that the pattern on the last 3 triggers was to start with a loop over the incoming records and use some data from them to take the next steps.
+
