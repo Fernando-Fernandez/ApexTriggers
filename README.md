@@ -1,7 +1,7 @@
 # ApexTriggers
 Different types of Apex triggers (Salesforce) and their helper classes
 
-## SUMMARY:  these are 6 types of common triggers that cover roughly 70% of Apex development needs.
+## SUMMARY:  these are 6 types of common triggers that cover estimated 70% of Apex development needs (*).
 
 In all examples below the triggers will call static methods on the helper class and follow the format below:
 
@@ -451,3 +451,5 @@ In the example below, the client wanted to be notified when a quote belonging to
 
 Another variation of the loop-query-loop-update:  loop-query-loop-email.
 
+------------
+(*) this is taken from personal experience working on hundreds of orgs over a period of 8+ years.
