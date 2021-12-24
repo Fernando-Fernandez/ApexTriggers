@@ -151,6 +151,10 @@ The example below is adapted and simplified from a Field Service Lightning org. 
                          AND ServiceResource.Service__c IN :workOrderServiceSet 
                ];
                
+               if( resourceList.isEmpty() ) {
+                    return;
+               }
+               
                Map<String, Id> resourceIdPerTerritoryServiceMap = new Map<String, Id>();
                for( ServiceTerritoryMember aResource : resourceList ) {
                     String indexKey = aResource.ServiceTerritoryId + '|' + aResource.ServiceResource.Service__c;
@@ -167,10 +171,53 @@ The example below is adapted and simplified from a Field Service Lightning org. 
      }
 ```
 
-Notice that the pattern on the last 3 triggers was to start with a loop over the incoming records and use some data from them to take the next steps. In this case, the data was collected from the incoming records to perform a query on another object.
+Notice that the pattern on the last 3 triggers was to start with a loop over the incoming records. Then it leverages data from them to take the next steps. In this case, the data was collected from the incoming records to perform a query on another object.
 
 ------------
 ### 4 - Trigger that sets fields with values on other records
-This trigger simply propagates data from the incoming records to other objects in the org. This may be accomplished via record-triggered flows too but it tends to be more straightforward and performant to implement it in a trigger.
+This trigger simply propagates data from the incoming records to other objects in the org, usually to children records or to parent records. This may be accomplished via record-triggered flows too but it tends to be more straightforward and performant to implement it in a trigger.
 
-The example below is adapted from a Sales org client. When an opportunity was closed, the client wanted to create 12 months worth of child records. 
+The example below is adapted from a Sales org client. When an opportunity was closed, the client wanted to create 12 months worth of child records (Draw__c). 
+
+```java
+     trigger OpportunityTrigger on Opportunity ( before insert, before update ) {
+          OpportunityHelperClass.findPreferredResource( trigger.operationType, trigger.new, trigger.oldMap );
+     }
+     
+     class OpportunityHelperClass {
+          public static void createDisbursements( TriggerOperation operationType
+                              , List<Opportunity> newList, Map<ID, Opportunity> oldMap ) {
+               
+               // create Disbursements for opportunities that became closed won
+               List<Disbursement__c> newDisbursementList = new List<Disbursement__c>();
+               for( Opportunity anOpportunity : newList ) {
+                    // skip if opportunity was not changed to closed won (or inserted as closed won)
+                    Opportunity oldOpportunity = oldMap?.get( anOpportunity.Id );
+                    if( anOpportunity.IsClosed == oldOpportunity?.IsClosed 
+                        && anOpportunity.IsWon == oldOpportunity?.IsWon ) {
+                         continue;
+                    }
+
+                    // create template Disbursement linked to opportunity
+                    Disbursement__c templateDisbursement = new Disbursement__c();
+                    aDisbursement.Opportunity__c = anOpportunity.Id;
+
+                    // create Disbursements for each month cloned from template
+                    for( Integer i = 0; i < 12; i++ ) {
+                        Disbursement__c newDisbursement = templateDisbursement.clone();
+                        newDisbursement.Disbursement_Number__c = i + 1;
+                        newDisbursement.Name = anOpportunity.Name + ' - Disbursement ' + newDisbursement.Disbursement_Number__c;
+                        newDisbursement.Disbursement_Date__c = anOpportunity.CloseDate.addMonths( i );
+                    
+                        newDisbursementList.add( newDisbursement );
+                    }
+                }
+
+                if( ! newDisbursementList.isEmpty() ) {
+                    insert newDisbursementList;
+                }
+          }
+     }
+```
+
+The example below is adapted from a Sales org client. When an opportunity product changed its status, the client wanted it to automatically sync the parent opportunity status. 
