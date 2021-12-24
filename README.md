@@ -1,6 +1,9 @@
 # ApexTriggers
 Different types of Apex triggers (Salesforce) and their helper classes
 
+[![Triggers Diagram](https://github.com/Fernando-Fernandez/ApexTriggers/blob/master/TriggerDiagram.png?raw=true "Triggers Diagram")](https://github.com/Fernando-Fernandez/ApexTriggers/blob/master/TriggerDiagram.png?raw=true "Triggers Diagram")
+
+
 ## SUMMARY:  these are 6 types of common triggers that cover estimated 70% of Apex development needs (*).
 
 In all examples below the triggers will call static methods on the helper class and follow the format below:
