@@ -313,7 +313,7 @@ These triggers almost always start with an initial loop over the incoming record
 ------------
 ### 5 - Trigger that performs call outs to external web services or HTTP requests to receive data
 
-This trigger collects data from the incoming records, calls out a web service passing that data as parameters, then updates one or more objects in the org. This requires the use of @future(callout=true) since 
+This trigger collects data from the incoming records, calls out a web service passing that data as parameters, then updates one or more objects in the org. This requires the use of @future(callout=true) annotation since callout from triggers are currently not supported. 
 
 The example below was adapted from a client org that needed the transportation distance and duration between one of their warehouses and their customers whenever the warehouse or the customer address was changed on the record. We leveraged the Distance Matrix API from Google.
 
@@ -370,7 +370,7 @@ class OpportunityLineItemHelperClass {
 }
 ```
 
-This one was a depature from the pattern:  instead of loop-query-loop-update, it was a loop-async callout plus query-loop-update.
+This one was a departure from the pattern:  instead of loop-query-loop-update, it was a loop-async callout plus query-loop-update.
 
 ------------
 ### 6 - Trigger that sends emails related to incoming records
