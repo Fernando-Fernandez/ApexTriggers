@@ -169,7 +169,7 @@ class WorkOrderHelperClass {
           // assign preferred resource matching by territory and service
           for( WorkOrder aWorkOrder : newList ) {
                String indexKey = aWorkOrder.ServiceTerritoryId + '|' + aWorkOrder.Service__c;
-               Id aResourceId = resourceIdPerTerritoryServiceMap.put( indexKey );
+               Id aResourceId = resourceIdPerTerritoryServiceMap.get( indexKey );
                aWorkOrder.Preferred_Resource__c = aResourceId;
           }
      }
