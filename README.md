@@ -177,11 +177,12 @@ Notice that the pattern on the last 3 triggers was to start with a loop over the
 ### 4 - Trigger that sets fields with values on other records
 This trigger simply propagates data from the incoming records to other objects in the org, usually to children records or to parent records. This may be accomplished via record-triggered flows too but it tends to be more straightforward and performant to implement it in a trigger.
 
-The example below is adapted from a Sales org client. When an opportunity was closed, the client wanted to create 12 months worth of child records (Draw__c). 
+The example below is adapted from a Sales org client. When an opportunity was closed, the client wanted to create 12 months worth of child records (Disbursement__c). 
+Since the child records need the parent opportunity id, this trigger is after insert/update.
 
 ```java
-     trigger OpportunityTrigger on Opportunity ( before insert, before update ) {
-          OpportunityHelperClass.findPreferredResource( trigger.operationType, trigger.new, trigger.oldMap );
+     trigger OpportunityTrigger on Opportunity ( after insert, after update ) {
+          OpportunityHelperClass.createDisbursements( trigger.operationType, trigger.new, trigger.oldMap );
      }
      
      class OpportunityHelperClass {
@@ -220,4 +221,154 @@ The example below is adapted from a Sales org client. When an opportunity was cl
      }
 ```
 
-The example below is adapted from a Sales org client. When an opportunity product changed its status, the client wanted it to automatically sync the parent opportunity status. 
+The example below is adapted from another Sales org client. When an opportunity product changed its status, the client wanted it to automatically sync the parent opportunity status.
+
+```java
+     trigger OpportunityLineItemTrigger on OpportunityLineItem ( after insert, after update ) {
+          OpportunityLineItemHelperClass.syncParentOpportunityStatus( trigger.operationType, trigger.new, trigger.oldMap );
+     }
+     
+     class OpportunityLineItemHelperClass {
+          public static void syncParentOpportunityStatus( TriggerOperation operationType
+                              , List<OpportunityLineItem> newList, Map<ID, OpportunityLineItem> oldMap ) {
+               
+                // collect parent opportunity ids
+                Set<Id> opportunityIdSet = new Set<Id>();
+                for( OpportunityLineItem anOpportunityLineItem : newList ) {
+                    // skip if OpportunityLineItem status was not changed
+                    OpportunityLineItem oldOpportunityLineItem = oldMap?.get( anOpportunityLineItem.Id );
+                    if( anOpportunityLineItem.Status__c == oldOpportunityLineItem?.Status__c ) {
+                        continue;
+                    }
+                    
+                    opportunityIdSet.add( anOpportunityLineItem.OpportunityId );
+                }
+
+                if( opportunityIdSet.isEmpty() ) {
+                     return;
+                }
+
+                // fetch parent opportunities with their opportunity products
+                List<Opportunity> opportunityList = [
+                    SELECT Id, StageName
+                        , ( SELECT Id, Status__c 
+                            FROM OpportunityLineItems )
+                    FROM Opportunity
+                    WHERE Id IN : opportunityIdSet
+                ];
+
+                if( opportunityList.isEmpty() ) {
+                    return;
+                }
+
+                // update opportunities if applicable
+                List<Opportunity> opportunitiesForUpdateList = new List<Opportunity>();
+                for( Opportunity anOpportunity : opportunityList ) {
+                    if( anOpportunity.OpportunityLineItems == null
+                            || anOpportunity.OpportunityLineItems.isEmpty() ) {
+                        continue;
+                    }
+
+                    String currentStage = anOpportunity.StageName;
+                    Boolean inProgress = false;
+                    for( OpportunityLineItem anOpportunityLineItem : anOpportunity.OpportunityLineItems ) {
+                        // if a new product was added to a won opportunity, set it to Reopened Won
+                        if( anOpportunityLineItem.Status__c == 'New' 
+                                && currentStage == 'Closed Won' ) {
+                            currentStage == 'Reopened Won';
+                            continue;
+                        }
+
+                        if( anOpportunityLineItem.Status__c == 'In Progress' ) {
+                            inProgress = true;
+                            continue;
+                        }
+                    }
+
+                    // check if at least one line item is in progress
+                    if( inProgress ) {
+                        currentStage = 'In Progress Won';
+                    }
+
+                    // only update if stage needs to be synced
+                    if( currentStage != anOpportunity.StageName ) {
+                        anOpportunity.StageName == currentStage;
+                        opportunitiesForUpdateList.add( anOpportunity );
+                    }
+                }
+
+                if( ! opportunitiesForUpdateList.isEmpty() ) {
+                    update opportunitiesForUpdateList;
+                }
+          }
+     }
+```
+
+These triggers almost always start with an initial loop over the incoming records but here we observe another pattern:  it collects data from the incoming records, then use that data to query some other object, then loop over the queried data to perform some update. This loop-query-loop pattern is very common.
+
+------------
+### 5 - Trigger that performs call outs to external web services or HTTP requests to receive data
+
+This trigger collects data from the incoming records, calls out a web service passing that data as parameters, then updates one or more objects in the org. This requires the use of @future(callout=true) since 
+
+The example below was adapted from a client org that needed the transportation distance and duration between one of their warehouses and their customers whenever the warehouse or the customer address was changed on the record. We leveraged the Distance Matrix API from Google.
+
+```java
+     trigger OpportunityTrigger on Opportunity ( after insert, after update ) {
+          OpportunityHelperClass.calculateTransportationCosts( trigger.operationType, trigger.new, trigger.oldMap );
+     }
+     
+     class OpportunityLineItemHelperClass {
+          public static void calculateTransportationCosts( TriggerOperation operationType
+                              , List<Opportunity> newList, Map<ID, Opportunity> oldMap ) {
+               
+                // collect opportunity source-destination pairs
+                Map<Id, String> opportunitySourceMap = new Map<Id, String>();
+                Map<Id, String> opportunityDestinationMap = new Map<Id, String>();
+                for( Opportunity anOpportunity : newList ) {
+                    // skip if Warehouse__c and AccountId were not changed
+                    Opportunity oldOpportunity = oldMap?.get( anOpportunity.Id );
+                    if( anOpportunity.Warehouse__c == oldOpportunity?.Warehouse__c
+                            && anOpportunity.AccountId == oldOpportunity?.AccountId ) {
+                        continue;
+                    }
+
+                    opportunitySourceMap.put( anOpportunity.Id, anOpportunity.Warehouse_Address__c );
+                    opportunityDestinationMap.put( anOpportunity.Id, anOpportunity.Customer_Address__c );
+                }
+
+                calculateDistance( opportunitySourceMap, opportunityDestinationMap );
+          }
+
+          @future( callout=true )
+          public static void calculateDistance( Map<Id, String> opportunitySourceMap
+                                            , Map<Id, String> opportunityDestinationMap ) {
+
+                // get distance matrix from Google API
+                GoogleAPIHelper.DistanceMatrix distanceMatrix = GoogleAPIHelper.getDistanceMatrix( 
+                                                    opportunitySourceMap, opportunityDestinationMap );
+
+                List<Opportunity> opportunityList = [
+                    SELECT Id, Warehouse_Address__c, Customer_Address__c 
+                    FROM Opportunity 
+                    WHERE Id IN :opportunitySourceMap.keySet() 
+                ];
+
+                // calculate transportation costs
+                for( Opportunity anOpportunity : opportunityList ) {
+                    anOpportunity.Transportation_Cost__c = distanceMatrix.getCost( 
+                                                opportunitySourceMap.get( anOpportunity.Id ), 
+                                                opportunityDestinationMap.get( anOpportunity.Id ) );
+                }
+
+                update opportunityList;
+          }
+     }
+```
+
+------------
+### 6 - Trigger that sends emails related to incoming records
+
+This trigger collects data from the incoming records, then sends an email linked to the record according to a criteria. Ideally this would be handled with a workflow alert or a record-triggered flow, but some criteria may be too complex to be implemented satisfactorily in a flow/rule.
+
+
