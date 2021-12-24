@@ -380,73 +380,73 @@ This trigger collects data from the incoming records, then sends an email linked
 In the example below, the client wanted to be notified when a quote belonging to a parent opportunity was changed to no longer be the opportunity's only quote flagged as forecast.
 
 ```java
-     trigger QuoteTrigger on Quote ( after insert, after update ) {
-          QuoteHelperClass.checkForecastQuoteChange( trigger.operationType, trigger.new, trigger.oldMap );
+trigger QuoteTrigger on Quote ( after insert, after update ) {
+     QuoteHelperClass.checkForecastQuoteChange( trigger.operationType, trigger.new, trigger.oldMap );
+}
+
+class QuoteLineItemHelperClass {
+     public static void checkForecastQuoteChange( TriggerOperation operationType
+                         , List<Quote> newList, Map<ID, Quote> oldMap ) {
+
+           // collect parent opportunity ids to retrieve them
+           Set<Id> opportunityIdSet = new Set<Id>();
+           Map<Id, String> QuoteDestinationMap = new Map<Id, String>();
+           for( Quote aQuote : newList ) {
+               // skip if Forecast__c was not changed
+               Quote oldQuote = oldMap?.get( aQuote.Id );
+               if( aQuote.Forecast__c == oldQuote?.Forecast__c ) {
+                   continue;
+               }
+
+               opportunityIdSet.add( aQuote.OpportunityId );
+           }
+
+           // fetch parent opportunities with their quotes
+           List<Opportunity> opportunityList = [
+               SELECT Id, Type
+                   , ( SELECT Id, Forecast__c 
+                       FROM Quotes )
+               FROM Opportunity
+               WHERE Id IN : opportunityIdSet
+           ];
+
+           if( opportunityList.isEmpty() ) {
+               return;
+           }
+
+           // send emails if applicable
+           List<Messaging.SingleEmailMessage> emailList = new List<Messaging.SingleEmailMessage>();
+           for( Opportunity anOpportunity : opportunityList ) {
+               if( anOpportunity.Quotes == null || anOpportunity.Quotes.isEmpty() ) {
+                   continue;
+               }
+
+               Integer forecastCount = 0;
+               for( Quote aQuote : anOpportunity.Quotes ) {
+                    if( aQuote.Forecast__c == true ) {
+                       forecastCount ++;
+                    }
+
+                    if( forecastCount > 1 ) {
+                        Messaging.SingleEmailMessage message = getForecastQuoteChangedMessage( 
+                                                                anOpportunity.Id );
+                        emailList.add( message );
+
+                        // skip rest of the quotes for this opportunity
+                        break;
+                    }
+               }
+           }
+
+           if( emailList.isEmpty() ) {
+               return;
+           }
+
+           Messaging.SendEmailResult[] results = Messaging.sendEmail( emailList );
+
+           // TODO: handle results
      }
-     
-     class QuoteLineItemHelperClass {
-          public static void checkForecastQuoteChange( TriggerOperation operationType
-                              , List<Quote> newList, Map<ID, Quote> oldMap ) {
-               
-                // collect parent opportunity ids to retrieve them
-                Set<Id> opportunityIdSet = new Set<Id>();
-                Map<Id, String> QuoteDestinationMap = new Map<Id, String>();
-                for( Quote aQuote : newList ) {
-                    // skip if Forecast__c was not changed
-                    Quote oldQuote = oldMap?.get( aQuote.Id );
-                    if( aQuote.Forecast__c == oldQuote?.Forecast__c ) {
-                        continue;
-                    }
-
-                    opportunityIdSet.add( aQuote.OpportunityId );
-                }
-
-                // fetch parent opportunities with their quotes
-                List<Opportunity> opportunityList = [
-                    SELECT Id, Type
-                        , ( SELECT Id, Forecast__c 
-                            FROM Quotes )
-                    FROM Opportunity
-                    WHERE Id IN : opportunityIdSet
-                ];
-
-                if( opportunityList.isEmpty() ) {
-                    return;
-                }
-
-                // send emails if applicable
-                List<Messaging.SingleEmailMessage> emailList = new List<Messaging.SingleEmailMessage>();
-                for( Opportunity anOpportunity : opportunityList ) {
-                    if( anOpportunity.Quotes == null || anOpportunity.Quotes.isEmpty() ) {
-                        continue;
-                    }
-
-                    Integer forecastCount = 0;
-                    for( Quote aQuote : anOpportunity.Quotes ) {
-                         if( aQuote.Forecast__c == true ) {
-                            forecastCount ++;
-                         }
-
-                         if( forecastCount > 1 ) {
-                             Messaging.SingleEmailMessage message = getForecastQuoteChangedMessage( 
-                                                                     anOpportunity.Id );
-                             emailList.add( message );
-
-                             // skip rest of the quotes for this opportunity
-                             break;
-                         }
-                    }
-                }
-
-                if( emailList.isEmpty() ) {
-                    return;
-                }
-
-                Messaging.SendEmailResult[] results = Messaging.sendEmail( emailList );
-
-                // TODO: handle results
-          }
-     }
+}
 ```
 
 Another variation of the loop-query-loop-update:  loop-query-loop-email.
